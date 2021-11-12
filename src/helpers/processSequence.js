@@ -14,38 +14,65 @@
  * Иногда промисы от API будут приходить в состояние rejected, (прямо как и API в реальной жизни)
  * Ответ будет приходить в поле {result}
  */
+import { round } from 'lodash';
+import { allPass, andThen, compose, gt, ifElse, length, lt, match, modulo, otherwise, prop, tap } from 'ramda';
 import Api from '../tools/api';
 
 const api = new Api();
 
-/**
- * Я – пример, удали меня
- */
-const wait = time => new Promise(resolve => {
-    setTimeout(resolve, time);
-})
+const getValue = prop('value');
+const getWriteLog = prop('writeLog');
+const getHandleSuccess = prop('handleSuccess');
+const getHandleError = prop('handleError');
+const getResult = prop('result');
 
-const processSequence = ({value, writeLog, handleSuccess, handleError}) => {
-    /**
-     * Я – пример, удали меня
-     */
-    writeLog(value);
+const isLessThanTen = gt(10);
+const isGreaterThanTwo = lt(2);
+const isPositiveNumber = lt(0);
+const isFloatNumber = match(/^[0-9]+\.{0,1}[0-9]+$/);
 
-    api.get('https://api.tech/numbers/base', {from: 2, to: 10, number: '01011010101'}).then(({result}) => {
-        writeLog(result);
-    });
+const isValidLength = compose(allPass([isLessThanTen, isGreaterThanTwo]), length);
+const isValidInput = compose(allPass([isValidLength, isPositiveNumber, isFloatNumber]), getValue);
 
-    wait(2500).then(() => {
-        writeLog('SecondLog')
+const parseInput = compose(round, parseFloat, getValue);
+const transferToBinarySystem = (value) => api.get('https://api.tech/numbers/base', {from: 10, to: 2, number: value});
+const squareValue = (value) => Math.pow(value, 2);
+const getRemainderOfDivisionByThree = (value) => modulo(value, 3);
+const getRandomAnimal = (id) => api.get(`https://animals.tech/${id}`)({});
 
-        return wait(1500);
-    }).then(() => {
-        writeLog('ThirdLog');
+const handleValidationError = (input) => getHandleError(input)('ValidationError');
+const handlePromiseError = (error) => getHandleError(error);
+const processSequence = (input) => {
+    
+    const writeLog = getWriteLog(input);
+    const logInput = compose(writeLog, getValue);
+    const getSuccessResult = getHandleSuccess(input);
 
-        return wait(400);
-    }).then(() => {
-        handleSuccess('Done');
-    });
+    const result = compose(
+        ifElse(
+            isValidInput, 
+            compose(
+                otherwise(handlePromiseError),
+                andThen(getSuccessResult),
+                andThen(getResult),
+                andThen(getRandomAnimal),
+                andThen(tap(writeLog)),
+                andThen(getRemainderOfDivisionByThree),
+                andThen(tap(writeLog)),
+                andThen(squareValue),
+                andThen(tap(writeLog)),
+                andThen(length),
+                andThen(tap(writeLog)),
+                andThen(getResult),
+                transferToBinarySystem,
+                tap(writeLog),
+                parseInput,
+            ),
+            tap(handleValidationError)
+        ),
+        tap(logInput),
+    )
+    result(input);
 }
 
 export default processSequence;
