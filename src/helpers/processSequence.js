@@ -15,7 +15,7 @@
  * Ответ будет приходить в поле {result}
  */
 import { round } from 'lodash';
-import { allPass, andThen, compose, gt, ifElse, length, lt, match, modulo, otherwise, prop, tap } from 'ramda';
+import { allPass, andThen, assoc, compose, concat, gt, ifElse, length, lt, match, modulo, otherwise, prop, tap, __ } from 'ramda';
 import Api from '../tools/api';
 
 const api = new Api();
@@ -35,10 +35,16 @@ const isValidLength = compose(allPass([isLessThanTen, isGreaterThanTwo]), length
 const isValidInput = compose(allPass([isValidLength, isPositiveNumber, isFloatNumber]), getValue);
 
 const parseInput = compose(round, parseFloat, getValue);
-const transferToBinarySystem = (value) => api.get('https://api.tech/numbers/base', {from: 10, to: 2, number: value});
 const squareValue = (value) => Math.pow(value, 2);
 const getRemainderOfDivisionByThree = (value) => modulo(value, 3);
-const getRandomAnimal = (id) => api.get(`https://animals.tech/${id}`)({});
+
+const getSystemTransferApi = api.get('https://api.tech/numbers/base');
+const setParams = assoc('number', __, { from: 10, to: 2 });
+
+const createAnimalUrl = concat('https://animals.tech/');
+const getAnimalApi = api.get(__, {});
+
+const getRandomAnimal = compose(getAnimalApi, createAnimalUrl);
 
 const handleValidationError = (input) => getHandleError(input)('ValidationError');
 const handlePromiseError = (error) => getHandleError(error);
@@ -55,6 +61,7 @@ const processSequence = (input) => {
                 otherwise(handlePromiseError),
                 andThen(getSuccessResult),
                 andThen(getResult),
+                andThen(tap(writeLog)),
                 andThen(getRandomAnimal),
                 andThen(tap(writeLog)),
                 andThen(getRemainderOfDivisionByThree),
@@ -64,7 +71,8 @@ const processSequence = (input) => {
                 andThen(length),
                 andThen(tap(writeLog)),
                 andThen(getResult),
-                transferToBinarySystem,
+                getSystemTransferApi,
+                setParams,
                 tap(writeLog),
                 parseInput,
             ),
