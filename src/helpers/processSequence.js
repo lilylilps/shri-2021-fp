@@ -15,7 +15,7 @@
  * Ответ будет приходить в поле {result}
  */
 import { round } from 'lodash';
-import { allPass, andThen, assoc, compose, concat, gt, ifElse, length, lt, match, modulo, otherwise, prop, tap, __ } from 'ramda';
+import { allPass, andThen, assoc, compose, concat, gt, ifElse, length, lt, match, modulo, otherwise, prop, tap, toString, __ } from 'ramda';
 import Api from '../tools/api';
 
 const api = new Api();
@@ -61,8 +61,8 @@ const processSequence = (input) => {
                 otherwise(handlePromiseError),
                 andThen(getSuccessResult),
                 andThen(getResult),
-                andThen(tap(writeLog)),
                 andThen(getRandomAnimal),
+                andThen(toString),
                 andThen(tap(writeLog)),
                 andThen(getRemainderOfDivisionByThree),
                 andThen(tap(writeLog)),
